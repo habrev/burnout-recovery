@@ -145,43 +145,6 @@ Frontend runs at `http://localhost:5173`
 
 ---
 
-### Environment Variables
-
-Copy `backend/.env.example` to `backend/.env` and fill in every value:
-
-```env
-# Django
-SECRET_KEY=your-secret-key-here
-DJANGO_SETTINGS_MODULE=reset_project.settings.development
-
-# PostgreSQL (local)
-DB_NAME=reset_db
-DB_USER=postgres
-DB_PASSWORD=your-db-password
-DB_HOST=localhost
-DB_PORT=5432
-
-# Google Gemini
-GEMINI_API_KEY=your-gemini-api-key
-
-# Gmail SMTP (port 465 = SSL, port 587 = TLS)
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=465
-EMAIL_HOST_USER=you@gmail.com
-EMAIL_HOST_PASSWORD=your-gmail-app-password
-DEFAULT_FROM_EMAIL=you@gmail.com
-
-# OTP
-OTP_EXPIRY_MINUTES=10
-
-# Comma-separated emails that receive superuser privileges on first registration
-ADMIN_EMAILS=you@gmail.com
-```
-
-> **Never commit `backend/.env`** — it is listed in `.gitignore`. Only `.env.example` (with placeholder values) belongs in version control.
-
----
-
 ## API Reference
 
 All endpoints are prefixed with `/api/`.
