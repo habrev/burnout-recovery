@@ -178,57 +178,6 @@ All endpoints are prefixed with `/api/`.
 
 Django admin UI: `/admin4reset/`
 
----
-
-## Deployment — Render
-
-The repository includes a `render.yaml` Blueprint that provisions all three services automatically.
-
-### 1. Connect the repo
-
-1. Log in to [render.com](https://render.com)
-2. **New → Blueprint** → connect `habrev/burnout-recovery`
-3. Render creates: `reset-backend`, `reset-frontend`, `reset-db`
-
-### 2. Set secret environment variables
-
-In the Render dashboard, go to **reset-backend → Environment** and add:
-
-| Key | Value |
-|-----|-------|
-| `GEMINI_API_KEY` | your Gemini API key |
-| `EMAIL_HOST_USER` | your Gmail address |
-| `EMAIL_HOST_PASSWORD` | your Gmail App Password |
-| `DEFAULT_FROM_EMAIL` | your Gmail address |
-| `ALLOWED_HOSTS` | `reset-backend.onrender.com` |
-| `CORS_ALLOWED_ORIGINS` | `https://reset-frontend.onrender.com` |
-| `ADMIN_EMAILS` | comma-separated admin emails |
-
-In **reset-frontend → Environment**:
-
-| Key | Value |
-|-----|-------|
-| `VITE_API_URL` | `https://reset-backend.onrender.com` |
-
-### 3. Deploy
-
-Click **Manual Deploy → Deploy latest commit** on `reset-backend`. The static frontend deploys automatically on every push to `main`.
-
-### 4. Create admin (first deploy only)
-
-Open **reset-backend → Shell** and run:
-
-```bash
-python manage.py create_admin
-```
-
-### Free tier notes
-
-- The backend web service spins down after 15 minutes of inactivity; the first request after idle has a ~30 second cold start
-- The PostgreSQL free instance expires after 90 days — export your data before then or upgrade to the $7/month plan
-- The React static site is free with no restrictions
-
----
 
 ## Contributing
 
