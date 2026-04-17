@@ -1,4 +1,4 @@
-# RESET — Burnout Recovery Engine
+# RESET - Burnout Recovery Engine
 
 A full-stack web application that assesses burnout severity and delivers AI-generated personalised recovery plans in real time. Built for high performers who need structured, evidence-informed interventions.
 
