@@ -15,8 +15,6 @@ A full-stack web application that assesses burnout severity and delivers AI-gene
   - [Backend Setup](#backend-setup)
   - [Frontend Setup](#frontend-setup)
   - [Environment Variables](#environment-variables)
-- [API Reference](#api-reference)
-- [Deployment — Render](#deployment--render)
 - [Contributing](#contributing)
 
 ---
