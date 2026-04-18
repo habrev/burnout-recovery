@@ -143,41 +143,6 @@ npm run dev
 
 Frontend runs at `http://localhost:5173`
 
----
-
-## API Reference
-
-All endpoints are prefixed with `/api/`.
-
-### Auth — `/api/auth/`
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `request-otp/` | Public | Send OTP to email |
-| POST | `verify-otp/` | Public | Verify OTP, receive `registration_token` |
-| POST | `register/` | Public | Set password, create account, receive JWT |
-| POST | `login/` | Public | Email + password → JWT |
-| POST | `token/refresh/` | Public | Refresh access token |
-| GET | `me/` | Bearer | Return current user profile |
-
-### Submissions — `/api/submissions/`
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/` | Bearer | Submit burnout assessment, receive AI plan |
-| GET | `/` | Bearer | List current user's submission history |
-| GET | `<id>/` | Bearer | Retrieve a single submission |
-
-### Admin Panel — `/api/admin-panel/`
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `stats/` | Admin | App-wide usage statistics |
-| GET | `users/` | Admin | Full user list |
-| GET | `submissions/` | Admin | All submissions across users |
-
-Django admin UI: `/admin4reset/`
-
 
 ## Contributing
 
