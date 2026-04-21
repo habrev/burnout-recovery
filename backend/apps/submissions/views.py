@@ -58,6 +58,23 @@ def result_detail(request, pk):
     return Response(SubmissionSerializer(submission).data)
 
 
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def update_checked_actions(request, pk):
+    try:
+        submission = Submission.objects.get(id=pk, user=request.user)
+    except Submission.DoesNotExist:
+        return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    checked = request.data.get('checked_actions')
+    if not isinstance(checked, list):
+        return Response({'error': 'checked_actions must be a list'}, status=status.HTTP_400_BAD_REQUEST)
+
+    submission.checked_actions = checked
+    submission.save(update_fields=['checked_actions'])
+    return Response({'checked_actions': submission.checked_actions})
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def submit_feedback(request, pk):

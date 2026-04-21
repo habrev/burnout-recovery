@@ -18,6 +18,7 @@ export default function ResultsPage() {
     api.get(`/api/results/${id}/`)
       .then((res) => {
         setResult(res.data)
+        setCheckedActions(res.data.checked_actions || [])
         if (res.data.feedback) {
           setFeedback(res.data.feedback.rating)
           setFeedbackSent(true)
@@ -28,9 +29,11 @@ export default function ResultsPage() {
   }, [id])
 
   function toggleAction(i) {
-    setCheckedActions((prev) =>
-      prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]
-    )
+    setCheckedActions((prev) => {
+      const next = prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i]
+      api.patch(`/api/results/${id}/checked-actions/`, { checked_actions: next }).catch(() => {})
+      return next
+    })
   }
 
   async function sendFeedback(rating) {

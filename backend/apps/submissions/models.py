@@ -8,6 +8,7 @@ class Submission(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submissions')
     input_text = models.TextField()
     ai_output = models.JSONField()
+    checked_actions = models.JSONField(default=list)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
