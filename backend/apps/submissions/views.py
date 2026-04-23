@@ -23,7 +23,7 @@ def submit(request):
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
 
-    protocol = get_recovery_protocol(ai_data['stress_level_int'])
+    protocol = get_recovery_protocol(ai_data['stress_level_int'], ai_data)
 
     combined_output = {**ai_data, **protocol}
 
