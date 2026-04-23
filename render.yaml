@@ -3,6 +3,7 @@ services:
   - type: web
     name: reset-backend
     runtime: python
+    plan: starter
     rootDir: backend
     buildCommand: ./build.sh
     startCommand: gunicorn reset_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2
@@ -35,6 +36,8 @@ services:
         value: "10"
       - key: ADMIN_EMAILS
         sync: false
+      - key: USE_HTTPS
+        value: "true"
 
   # React frontend (static site)
   - type: web
