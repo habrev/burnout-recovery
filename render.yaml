@@ -5,6 +5,7 @@ services:
     runtime: python
     plan: starter
     rootDir: backend
+    pythonVersion: "3.12.0"
     buildCommand: ./build.sh
     startCommand: gunicorn reset_project.wsgi:application --bind 0.0.0.0:$PORT --workers 2
     envVars:
