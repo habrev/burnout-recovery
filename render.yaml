@@ -29,7 +29,7 @@ services:
       - key: DEFAULT_FROM_EMAIL
         sync: false
       - key: ALLOWED_HOSTS
-        value: https://reset-backend-7vl8.onrender.com
+        value: reset-backend-7vl8.onrender.com
       - key: CORS_ALLOWED_ORIGINS
         value: https://reset-frontend-9f8s.onrender.com
       - key: OTP_EXPIRY_MINUTES
