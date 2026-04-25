@@ -227,6 +227,135 @@ def token_refresh(request):
         return Response({'error': 'Invalid or expired refresh token'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    email = request.data.get('email', '').strip().lower()
+    if not email:
+        return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not User.objects.filter(email=email).exists():
+        return Response({'error': 'No account found with this email.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    OTPToken.objects.filter(email=email, is_used=False).update(is_used=True)
+
+    code = _generate_otp()
+    expires_at = timezone.now() + timedelta(minutes=settings.OTP_EXPIRY_MINUTES)
+    OTPToken.objects.create(email=email, token=code, expires_at=expires_at)
+
+    try:
+        send_mail(
+            subject='Reset your RESET password',
+            message=(
+                f'Your password reset code is: {code}\n\n'
+                f'This code expires in {settings.OTP_EXPIRY_MINUTES} minutes.\n\n'
+                f'If you did not request this, ignore this email.'
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        print(f'Email error: {e}')
+        return Response(
+            {'error': 'Failed to send email. Check the address and try again.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    return Response({'message': 'Password reset code sent to your email.'})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_reset_otp(request):
+    email = request.data.get('email', '').strip().lower()
+    code = request.data.get('code', '').strip()
+
+    if not email or not code:
+        return Response({'error': 'Email and code are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    otp = OTPToken.objects.filter(email=email, is_used=False).order_by('-created_at').first()
+
+    if not otp or not otp.is_valid():
+        return Response(
+            {'error': 'Code expired or invalid. Request a new one.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    otp.attempts += 1
+
+    if otp.token != code:
+        otp.save()
+        remaining = max(0, 3 - otp.attempts)
+        return Response(
+            {'error': f'Wrong code. {remaining} attempt(s) left.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    reset_token = uuid.uuid4()
+    otp.registration_token = reset_token
+    otp.expires_at = timezone.now() + timedelta(minutes=15)
+    otp.is_used = True
+    otp.save()
+
+    return Response({
+        'message': 'Code verified.',
+        'reset_token': str(reset_token),
+        'email': email,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password(request):
+    email = request.data.get('email', '').strip().lower()
+    reset_token = request.data.get('reset_token', '').strip()
+    password = request.data.get('password', '')
+
+    if not email or not reset_token or not password:
+        return Response(
+            {'error': 'Email, reset token, and password are required'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if len(password) < 8:
+        return Response(
+            {'error': 'Password must be at least 8 characters'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        otp = OTPToken.objects.get(
+            email=email,
+            registration_token=reset_token,
+            is_used=True,
+        )
+    except OTPToken.DoesNotExist:
+        return Response(
+            {'error': 'Invalid or expired reset session. Please start over.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if otp.expires_at < timezone.now():
+        return Response(
+            {'error': 'Reset session expired. Please start over.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        return Response({'error': 'No account found with this email.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(password)
+    user.save()
+
+    otp.registration_token = None
+    otp.save()
+
+    return Response({'message': 'Password reset successfully. Please sign in.'})
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me(request):

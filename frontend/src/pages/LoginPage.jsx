@@ -9,16 +9,19 @@ export default function LoginPage() {
 
   const [mode, setMode] = useState('login')
   const [registerStep, setRegisterStep] = useState(0)
+  const [forgotStep, setForgotStep] = useState(0)
 
   const [email, setEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [otpCode, setOtpCode] = useState('')
   const [registrationToken, setRegistrationToken] = useState('')
+  const [resetToken, setResetToken] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
 
   if (user) {
     navigate('/', { replace: true })
@@ -28,11 +31,66 @@ export default function LoginPage() {
   function switchMode(m) {
     setMode(m)
     setError('')
+    setSuccessMessage('')
     setRegisterStep(0)
+    setForgotStep(0)
     setOtpCode('')
     setPassword('')
     setConfirmPassword('')
     setLoginPassword('')
+    setResetToken('')
+  }
+
+  async function handleForgotRequest(e) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      await api.post('/api/auth/forgot-password/', { email })
+      setForgotStep(1)
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to send code. Try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleVerifyResetOtp(e) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const res = await api.post('/api/auth/verify-reset-otp/', { email, code: otpCode })
+      setResetToken(res.data.reset_token)
+      setForgotStep(2)
+    } catch (err) {
+      setError(err.response?.data?.error || 'Invalid code. Try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleResetPassword(e) {
+    e.preventDefault()
+    setError('')
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.')
+      return
+    }
+    setLoading(true)
+    try {
+      await api.post('/api/auth/reset-password/', { email, reset_token: resetToken, password })
+      setSuccessMessage('Password reset! You can now sign in.')
+      switchMode('login')
+    } catch (err) {
+      setError(err.response?.data?.error || 'Reset failed. Please start over.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleLogin(e) {
@@ -121,22 +179,24 @@ export default function LoginPage() {
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
 
-          {/* Tabs */}
-          <div className="flex border-b border-gray-100">
-            {['login', 'register'].map((m) => (
-              <button
-                key={m}
-                onClick={() => switchMode(m)}
-                className={`flex-1 py-4 text-sm font-semibold transition-all ${
-                  mode === m
-                    ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/40'
-                    : 'text-gray-400 hover:text-gray-600'
-                }`}
-              >
-                {m === 'login' ? 'Sign In' : 'Create Account'}
-              </button>
-            ))}
-          </div>
+          {/* Tabs — hidden on forgot flow */}
+          {mode !== 'forgot' && (
+            <div className="flex border-b border-gray-100">
+              {['login', 'register'].map((m) => (
+                <button
+                  key={m}
+                  onClick={() => switchMode(m)}
+                  className={`flex-1 py-4 text-sm font-semibold transition-all ${
+                    mode === m
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/40'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  {m === 'login' ? 'Sign In' : 'Create Account'}
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="p-8">
             {mode === 'login' ? (
@@ -148,17 +208,128 @@ export default function LoginPage() {
                   <p className="text-sm text-gray-400 mt-1">Sign in to continue your reset journey</p>
                 </div>
 
+                {successMessage && (
+                  <div className="flex items-start gap-2.5 px-4 py-3 bg-green-50 border border-green-100 rounded-xl">
+                    <span className="text-green-600 font-bold text-sm mt-px flex-shrink-0">✓</span>
+                    <p className="text-green-700 text-sm leading-snug">{successMessage}</p>
+                  </div>
+                )}
                 {error && <ErrorAlert message={error} />}
 
                 <Field label="Email address" type="email" value={email}
                   onChange={setEmail} placeholder="you@example.com" autoFocus />
-                <Field label="Password" type="password" value={loginPassword}
-                  onChange={setLoginPassword} placeholder="••••••••" />
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-sm font-medium text-gray-700">Password</label>
+                    <button
+                      type="button"
+                      onClick={() => switchMode('forgot')}
+                      className="text-xs text-blue-600 hover:underline font-medium"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-gray-900 placeholder:text-gray-300 text-sm"
+                  />
+                </div>
 
                 <PrimaryButton loading={loading} disabled={!email || !loginPassword}>
                   Sign In
                 </PrimaryButton>
               </form>
+
+            ) : mode === 'forgot' ? (
+
+              /* ── FORGOT PASSWORD FLOW ── */
+              <div className="space-y-6">
+                <StepIndicator current={forgotStep} steps={['Email', 'Verify', 'New Password']} />
+
+                {forgotStep === 0 && (
+                  <form onSubmit={handleForgotRequest} className="space-y-5">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">Reset your password</h2>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Enter your email and we'll send a reset code
+                      </p>
+                    </div>
+                    {error && <ErrorAlert message={error} />}
+                    <Field label="Email address" type="email" value={email}
+                      onChange={setEmail} placeholder="you@example.com" autoFocus />
+                    <PrimaryButton loading={loading} disabled={!email}>
+                      Send Reset Code
+                    </PrimaryButton>
+                    <button
+                      type="button"
+                      onClick={() => switchMode('login')}
+                      className="w-full text-sm text-gray-400 hover:text-gray-600 transition"
+                    >
+                      ← Back to sign in
+                    </button>
+                  </form>
+                )}
+
+                {forgotStep === 1 && (
+                  <form onSubmit={handleVerifyResetOtp} className="space-y-5">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">Check your email</h2>
+                      <p className="text-sm text-gray-400 mt-1">
+                        Enter the 6-digit code sent to{' '}
+                        <span className="font-semibold text-gray-600">{email}</span>
+                      </p>
+                    </div>
+                    {error && <ErrorAlert message={error} />}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Reset code
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="000000"
+                        autoFocus
+                        required
+                        className="w-full px-4 py-3.5 text-center text-2xl font-bold tracking-[.6em] border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition placeholder:tracking-normal placeholder:text-gray-300 placeholder:font-normal placeholder:text-base"
+                      />
+                    </div>
+                    <PrimaryButton loading={loading} disabled={otpCode.length !== 6}>
+                      Verify Code
+                    </PrimaryButton>
+                    <button
+                      type="button"
+                      onClick={() => { setForgotStep(0); setOtpCode(''); setError('') }}
+                      className="w-full text-sm text-gray-400 hover:text-gray-600 transition"
+                    >
+                      ← Use a different email
+                    </button>
+                  </form>
+                )}
+
+                {forgotStep === 2 && (
+                  <form onSubmit={handleResetPassword} className="space-y-5">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900">Set new password</h2>
+                      <p className="text-sm text-gray-400 mt-1">Minimum 8 characters</p>
+                    </div>
+                    {error && <ErrorAlert message={error} />}
+                    <Field label="New password" type="password" value={password}
+                      onChange={setPassword} placeholder="••••••••" autoFocus />
+                    <Field label="Confirm new password" type="password" value={confirmPassword}
+                      onChange={setConfirmPassword} placeholder="••••••••" />
+                    <PrimaryButton loading={loading} disabled={!password || !confirmPassword}>
+                      Reset Password
+                    </PrimaryButton>
+                  </form>
+                )}
+              </div>
 
             ) : (
 
@@ -243,31 +414,32 @@ export default function LoginPage() {
         </div>
 
         {/* Switch mode link */}
-        <p className="text-center text-sm text-gray-400 mt-6">
-          {mode === 'login' ? (
-            <>Don't have an account?{' '}
-              <button onClick={() => switchMode('register')}
-                className="text-blue-600 font-semibold hover:underline">
-                Create one free
-              </button>
-            </>
-          ) : (
-            <>Already have an account?{' '}
-              <button onClick={() => switchMode('login')}
-                className="text-blue-600 font-semibold hover:underline">
-                Sign in
-              </button>
-            </>
-          )}
-        </p>
+        {mode !== 'forgot' && (
+          <p className="text-center text-sm text-gray-400 mt-6">
+            {mode === 'login' ? (
+              <>Don't have an account?{' '}
+                <button onClick={() => switchMode('register')}
+                  className="text-blue-600 font-semibold hover:underline">
+                  Create one free
+                </button>
+              </>
+            ) : (
+              <>Already have an account?{' '}
+                <button onClick={() => switchMode('login')}
+                  className="text-blue-600 font-semibold hover:underline">
+                  Sign in
+                </button>
+              </>
+            )}
+          </p>
+        )}
 
       </div>
     </div>
   )
 }
 
-function StepIndicator({ current }) {
-  const steps = ['Email', 'Verify', 'Password']
+function StepIndicator({ current, steps = ['Email', 'Verify', 'Password'] }) {
   return (
     <div className="flex items-center justify-center gap-1">
       {steps.map((label, i) => (
